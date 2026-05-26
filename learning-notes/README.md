@@ -2,7 +2,7 @@
 
 These are Jenny's notes for the real-time streaming project.
 
-The main `README.md` is the clean, recruiter-friendly overview. This folder is the slower walkthrough: what I built, why each piece exists, what confused me at first, and what I want future-me to remember when I come back to this later.
+The main `README.md` is the clean, engineer-friendly overview. This folder is the slower walkthrough: what I built, why each piece exists, what confused me at first, and what I want future-me to remember when I come back to it. It’s also useful for anyone new to data engineering who wants to recreate the pipeline or use it as a model.
 
 The goal is not to sound fancy. The goal is to make the project make sense.
 
