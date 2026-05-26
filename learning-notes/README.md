@@ -31,5 +31,3 @@ That is easy to forget if all I keep is a polished README. These notes keep the 
 ## Tone of these notes
 
 These are not meant to be formal product docs. They are working notes: plain language first, technical terms where they actually help, and enough context that someone learning cloud data engineering could follow the story without already knowing every AWS service by heart.
-
-test
