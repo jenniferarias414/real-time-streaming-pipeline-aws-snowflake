@@ -2,6 +2,8 @@
 
 ## Completed So Far
 
+- Added public learning notes explaining the end-to-end flow, service roles, S3/IAM concepts, error handling, and project explanation.
+
 - Created IAM role for project services.
 - Attached broad managed policies for the learning lab.
 - Created S3 data and error buckets.

@@ -26,3 +26,8 @@ The strongest proof screenshot currently included is:
 - `33-snowflake-query-loaded-data.png`
 
 That screenshot shows the event successfully loaded into Snowflake, which proves end-to-end success.
+
+
+## Optional final screenshot
+
+`33-snowflake-query-loaded-data.png` already proves end-to-end success because it shows the Postman event loaded into Snowflake. If a separate final proof image is desired later, save a wider version as `34-end-to-end-success.png`.
