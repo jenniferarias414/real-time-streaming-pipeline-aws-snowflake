@@ -1,101 +1,99 @@
 # S3 and IAM Study Notes
 
-These notes connect the course S3/IAM exercises back to this project.
+These notes connect the course S3/IAM exercises back to the project I actually built.
 
 ## S3 versioning
 
-Versioning means S3 can keep multiple versions of the same object instead of overwriting the old one completely.
+Versioning means S3 can keep older copies of an object instead of fully replacing the old one when a file with the same name is uploaded.
 
-Why it matters:
+Why that matters:
 
-- It can protect against accidental overwrite or deletion.
-- It helps with recovery because older versions can still exist.
+- It can help recover from accidental overwrite.
+- It can help recover from accidental delete.
 - It is required for some replication setups.
 
-How to enable it in the console:
+Basic console path:
 
-1. Open the S3 bucket.
-2. Go to **Properties**.
-3. Find **Bucket Versioning**.
-4. Click **Edit**.
-5. Choose **Enable** and save.
+```text
+S3 bucket → Properties → Bucket Versioning → Edit → Enable
+```
 
-Versioning is not the same as backup by itself, but it is a useful protection feature.
+One thing to remember: versioning is helpful, but it is not magic. It can also increase storage usage because old versions stay around unless lifecycle rules clean them up.
 
 ## S3 cross-region replication
 
-Cross-region replication copies objects from one S3 bucket in one AWS region to another S3 bucket in another region.
+Cross-region replication means objects from one S3 bucket are copied to another bucket in a different AWS region.
 
-Why a company might use it:
+Why a company might care:
 
 - disaster recovery
 - regional outage protection
 - compliance requirements
-- keeping data closer to users in another region
+- keeping a backup copy somewhere else
 
-Important detail: versioning must be enabled on both buckets for replication.
+Important detail: versioning needs to be enabled on both buckets.
 
-This project did not fully build cross-region replication, but the concept connects to data durability and disaster recovery. In a more production-ready version of this project, the raw S3 landing bucket could be replicated to another region for extra resilience.
+This project did not build cross-region replication, but the idea fits the project. A production version could replicate the raw landing bucket to another region so the event archive is more resilient.
 
-## IAM: what the policy is really saying
+## IAM policies: the short version
 
-IAM policies are JSON documents that answer three main questions:
+IAM policies are JSON permission rules.
+
+They basically answer:
 
 ```text
-Who/what gets access?
-What actions can it perform?
-Which resources can it perform those actions on?
+What actions are allowed?
+Which resources are those actions allowed on?
+Is this allowed or denied?
 ```
 
-Example read-only S3 object access:
+Example idea:
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowS3ReadAccess",
-      "Effect": "Allow",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::*/*"
-    }
-  ]
+  "Effect": "Allow",
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::example-bucket/*"
 }
 ```
 
-This allows reading objects from any bucket. That is useful for an exercise, but it is broad. In production, it would usually be scoped to specific buckets or prefixes.
+That says: allow reading objects from that bucket.
 
 ## Least privilege
 
-Least privilege means giving a service only the permissions it needs and nothing extra.
+Least privilege means giving a service only what it needs, not every permission under the sun.
 
-For this learning lab, broad AWS managed policies made setup faster. A production version would narrow permissions like this:
+For the lab, broad AWS managed policies helped keep the project moving. That is fine for learning, but not ideal for production.
 
-- Lambda can write only to the specific Kinesis stream.
-- Lambda can write only to the specific error bucket/prefix.
-- Firehose can write only to the specific raw bucket/prefix.
-- Snowflake can read only from the specific raw S3 location.
+A production version would be tighter:
 
-## Common IAM mistake: ARN formatting
+- Lambda can write only to the one Kinesis stream it needs.
+- Lambda can write only to the one error bucket/prefix.
+- Firehose can write only to the one raw bucket/prefix.
+- Snowflake can read only from the one S3 raw path.
 
-A lot of IAM errors come from tiny ARN mistakes.
+## ARN formatting matters
 
-Example pattern for Kinesis stream ARNs:
+ARNs are picky.
+
+A tiny typo in an ARN can make a policy fail even when the idea is right.
+
+Kinesis stream ARN pattern:
 
 ```text
 arn:aws:kinesis:region:account-id:stream/stream-name
 ```
 
-If the ARN is malformed, the policy may not apply to the intended resource, even if the action looks correct.
+That `stream/stream-name` part matters.
 
-## How this connects to the project
+## How IAM showed up in this project
 
-This project worked only because IAM permissions lined up correctly:
+This project worked because the permissions lined up:
 
 - API Gateway could invoke Lambda.
-- Lambda could write valid events to Kinesis.
-- Lambda could write invalid events to S3.
-- Firehose could write S3 files.
-- Snowflake could assume an AWS IAM role and read the raw S3 location.
+- Lambda could write to Kinesis.
+- Lambda could write bad records to S3.
+- Firehose could write valid records to S3.
+- Snowflake could assume an AWS role and read from S3.
 
-That is a huge part of cloud data engineering: not just writing code, but wiring services together with the right permissions.
+That is a real cloud lesson: sometimes the project is not failing because the code is wrong. Sometimes one service simply does not have permission to talk to the next service.

@@ -1,63 +1,74 @@
 # Project Explanation Guide
 
-This is a natural way to explain the project without overcomplicating it.
+This is how I would explain the project out loud without turning it into a giant AWS vocabulary quiz.
 
-## 30-second version
+## Quick version
 
-I built a guided real-time streaming pipeline using AWS and Snowflake. The project simulates an external application sending JSON events through API Gateway. Lambda validates each event, sends valid records to Kinesis, Firehose writes them to S3, and Snowpipe loads the files into Snowflake. If a record has a blank or missing `Id`, Lambda routes it to an S3 error bucket instead of sending it through the main pipeline.
+I built a guided real-time streaming pipeline with AWS and Snowflake.
+
+Postman sends JSON events to API Gateway. API Gateway calls Lambda. Lambda validates the event. If the event is valid, Lambda sends it to Kinesis, Firehose writes it to S3, and Snowpipe loads it into Snowflake. If the event is missing a valid `Id`, Lambda sends it to an S3 error bucket instead.
 
 ## Slightly deeper version
 
-The goal was to understand how a real-time ingestion architecture works across multiple cloud services. I used Postman to simulate an API client sending JSON events. API Gateway exposed the HTTP endpoint and invoked Lambda. Lambda handled validation and routing. Valid events went to Kinesis Data Streams and were delivered to the S3 raw bucket by Firehose. Snowpipe then auto-ingested the S3 files into a Snowflake raw table using a Snowflake stage and storage integration.
+The goal was to understand how real-time ingestion works across several cloud services.
 
-I also tested the error path by sending an invalid event with a blank `Id`. That record was written to the S3 error bucket, which showed how a pipeline can separate bad records without stopping valid ingestion.
+I used Postman as the test client. API Gateway exposed the endpoint. Lambda handled validation and routing. Kinesis acted as the streaming layer. Firehose delivered valid records to S3. Snowpipe watched the S3 raw folder and loaded new files into Snowflake.
 
-## What I personally built and tested
+I also tested the error path by sending a record with a blank `Id`. That record skipped the main stream and landed in the S3 error bucket. That showed how the pipeline can separate bad records without stopping good records from loading.
 
-- IAM role and permissions for the project services
+## What I built and tested
+
+- IAM role and permissions for AWS service access
 - S3 data and error buckets
 - Kinesis Data Stream
 - Firehose delivery stream to S3
 - Lambda validation/routing function
 - API Gateway REST endpoint
-- Postman valid and invalid API tests
-- Snowflake database/schema/raw table
+- Postman valid and invalid request tests
+- Snowflake database, schema, and raw table
 - Snowflake storage integration, external stage, and Snowpipe
-- End-to-end query proving the event loaded into Snowflake
+- Final Snowflake query proving the event loaded
 
-## Why these services were used
+## Why the services are there
 
-- API Gateway gives outside clients a secure HTTP entry point.
-- Lambda adds custom validation and routing logic.
-- Kinesis handles real-time streaming events.
-- Firehose reliably delivers the stream into S3.
-- S3 stores durable raw files and invalid records.
-- Snowpipe automates ingestion from S3 into Snowflake.
-- CloudWatch helps troubleshoot Lambda and pipeline errors.
-- IAM controls service-to-service access.
+- **API Gateway**: gives the pipeline an HTTPS entry point.
+- **Lambda**: validates the event and decides where it should go.
+- **Kinesis**: receives valid events as a stream.
+- **Firehose**: delivers the stream to S3.
+- **S3**: stores raw valid events and invalid error records.
+- **Snowpipe**: loads new S3 files into Snowflake automatically.
+- **CloudWatch**: helps troubleshoot Lambda/API issues.
+- **IAM**: controls which service is allowed to access which resource.
 
-## Questions I can answer from this project
+## Questions this project helped me answer
 
 ### Why put Lambda between API Gateway and Kinesis?
 
-Lambda gives us a place to validate, transform, enrich, or reject data before it enters the stream. In this project, Lambda checks the `Id` field and sends invalid records to an error bucket.
+Because Lambda gives me a checkpoint before the data enters the stream. I can validate the payload, reject bad records, add fields, transform data, or route different records to different places.
 
 ### Why use Firehose?
 
-Firehose makes it easy to deliver streaming data into S3 without building a custom consumer. It handles buffering and delivery, which is useful for data lake landing zones.
+Firehose saves me from writing my own custom consumer just to move data from Kinesis into S3. It handles buffering and delivery.
 
 ### Why use Snowpipe?
 
-Snowpipe lets Snowflake automatically ingest new files from S3. Instead of manually running a load command every time a file arrives, Snowpipe responds to S3 event notifications and loads data into the raw table.
+Snowpipe loads files from S3 into Snowflake automatically. I do not have to manually run a copy command every time a new file lands.
 
-### How did you handle errors?
+### How did I handle bad data?
 
-The Lambda function has validation logic. If the event is missing a valid `Id`, it writes the record to an S3 error bucket. That keeps invalid records out of the main stream while preserving them for review.
+The Lambda function checks the `Id` field. If it is blank or missing, the event goes to the S3 error bucket. That keeps the main pipeline cleaner and preserves the bad record for review.
 
-### How did you know the pipeline worked?
+### How did I know it worked?
 
-I tested it in layers. First, I tested Lambda directly. Then I tested the AWS path with Postman through API Gateway and confirmed output in S3. Finally, after Snowpipe was configured, I sent a valid event and queried the Snowflake raw table to confirm the record loaded successfully.
+I tested it in layers:
 
-## Honest project context
+1. Lambda test events.
+2. Postman through API Gateway.
+3. S3 raw and error bucket outputs.
+4. Snowflake query showing the loaded record.
 
-This was a guided data engineering project completed as part of my studies. The value for me was not just following the steps, but understanding how the services connect and documenting the project in a way I can explain later.
+That final Snowflake query is the proof that the event traveled through the full pipeline.
+
+## Project context
+
+This was a guided project from my data engineering studies. I kept the repo polished enough to show the completed build, but I also kept these notes because the real value was understanding how all the services connect.
