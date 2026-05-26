@@ -1,0 +1,8 @@
+{
+  "Id": "",
+  "customer_id": "C301",
+  "event_type": "purchase",
+  "amount": 49.99,
+  "payment_type": "card",
+  "event_time": "2026-05-26T12:05:00Z"
+}
