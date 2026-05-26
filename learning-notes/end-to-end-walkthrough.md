@@ -2,7 +2,9 @@
 
 ## The short version
 
-This project simulates an application sending JSON events into a cloud data pipeline. Valid records are streamed into AWS, stored in S3, and loaded into Snowflake. Invalid records are separated into an S3 error bucket so they can be reviewed instead of breaking the main pipeline.
+This project simulates an app sending JSON events into a cloud data pipeline.
+
+Valid records go through the main pipeline:
 
 ```text
 Postman
@@ -15,7 +17,7 @@ Postman
 → Snowflake raw table
 ```
 
-Error path:
+Bad records take a separate path:
 
 ```text
 Postman
@@ -24,30 +26,34 @@ Postman
 → S3 error bucket
 ```
 
-## Why Postman is part of the project
+The point is simple: keep good data moving, but do not throw away bad data.
 
-Postman is not part of the production pipeline. It is the test client. In this lab, Postman pretends to be an external application sending events through an HTTP POST request.
+## What Postman is doing here
 
-This matters because it proves the pipeline can receive data from outside AWS, not just from an internal Lambda test event.
+Postman is not part of the production pipeline. It is just pretending to be an app or outside system sending data to us.
 
-The Postman/API Gateway test proved that the AWS side of the pipeline worked before Snowflake was added:
+In real life, this could be a website, mobile app, vendor feed, payment system, airline system, or any backend service that sends events through an API.
+
+For this lab, Postman gave me a safe way to send test JSON into API Gateway and prove the AWS side worked before Snowflake was added.
+
+That first Postman test proved this part:
 
 ```text
 Postman sent JSON
-→ API Gateway accepted the HTTP request
-→ Lambda parsed and validated the payload
-→ valid records moved into Kinesis
-→ Firehose delivered records into S3
-→ invalid records were routed to the S3 error bucket
+→ API Gateway accepted the request
+→ Lambda parsed and validated it
+→ valid data went to Kinesis
+→ Firehose delivered it to S3
+→ invalid data went to the S3 error bucket
 ```
 
-Once Snowpipe was added, a final valid event proved the full end-to-end path into Snowflake.
+Then Snowpipe was added so the valid files in S3 could load into Snowflake automatically.
 
-## Valid record path
+## The valid data path
 
-A valid event has a non-blank `Id` field. For this lab, the validation rule is intentionally simple.
+A valid event has a non-blank `Id` field.
 
-Example valid payload:
+Example:
 
 ```json
 {
@@ -60,22 +66,23 @@ Example valid payload:
 }
 ```
 
-What happens next:
+What happens:
 
-1. API Gateway receives the HTTP POST request.
-2. API Gateway invokes the Lambda function.
-3. Lambda parses the request body into JSON.
-4. Lambda checks the `Id` field.
-5. If `Id` is valid, Lambda writes the record to Kinesis.
-6. Firehose reads from Kinesis and writes the event into the S3 `raw/` prefix.
-7. Snowpipe watches for new files in S3 and loads them into the Snowflake raw table.
-8. The row becomes queryable in Snowflake.
+1. Postman sends the JSON as an HTTP POST request.
+2. API Gateway receives the request.
+3. API Gateway invokes Lambda.
+4. Lambda reads the request body and parses it as JSON.
+5. Lambda checks the `Id` field.
+6. If the `Id` is good, Lambda sends the event to Kinesis.
+7. Firehose reads from Kinesis and writes the event to S3 under `raw/`.
+8. Snowpipe sees the new S3 file and loads it into the Snowflake raw table.
+9. The event becomes queryable in Snowflake.
 
-## Invalid record path
+## The invalid data path
 
 An invalid event has a blank or missing `Id`.
 
-Example invalid payload:
+Example:
 
 ```json
 {
@@ -88,29 +95,33 @@ Example invalid payload:
 }
 ```
 
-What happens next:
+What happens:
 
-1. API Gateway receives the request.
-2. Lambda parses the JSON.
-3. Lambda identifies that `Id` is blank.
-4. Instead of sending the bad record to Kinesis, Lambda writes it to the S3 error bucket under `errors/`.
+1. API Gateway still receives the request.
+2. Lambda still parses the JSON.
+3. Lambda sees that `Id` is blank.
+4. Instead of putting it into the main stream, Lambda writes it to the S3 error bucket under `errors/`.
 
-That pattern is common in data engineering: keep the main pipeline moving, but preserve bad records so they can be reviewed and reprocessed later.
+That error bucket matters. It means the bad record is not lost, but it also does not contaminate the main data path.
 
 ## What Snowflake stores
 
-The Snowflake raw table stores the JSON payload in a `VARIANT` column. This is useful because raw JSON may not always be perfectly flat or predictable.
+The Snowflake raw table stores the event in a `VARIANT` column.
 
-A raw table is usually the first landing table. Later, the data can be transformed into cleaner models with typed columns, business rules, and reporting-friendly structure.
+That means Snowflake keeps the JSON mostly as-is instead of forcing it into separate columns right away.
 
-## What I learned from building this
+This makes sense for a raw layer because raw event data can change over time. Later, the JSON could be flattened into typed columns for reporting or analytics.
 
-The biggest learning point was how many small configuration details have to line up:
+## The biggest thing I learned
 
-- Lambda needs permission to write to Kinesis and S3.
-- Firehose needs permission to write to the S3 data bucket.
-- API Gateway needs permission to invoke Lambda.
-- Snowflake needs an AWS IAM role and external ID trust relationship.
-- S3 event notifications need to point to the Snowpipe notification channel.
+The code was only one part of the project.
 
-The code is not the whole project. A lot of the work is wiring cloud services together securely and testing each step before moving on.
+The harder part was getting all the services to trust each other and pass data correctly:
+
+- API Gateway needed permission to invoke Lambda.
+- Lambda needed permission to write to Kinesis and S3.
+- Firehose needed permission to write files to the S3 data bucket.
+- Snowflake needed an IAM role and external ID trust relationship to read from S3.
+- S3 needed an event notification so Snowpipe could react to new files.
+
+This is a big part of cloud data engineering: the pipeline is not just code. It is code plus permissions, configuration, storage paths, event notifications, and testing each handoff.

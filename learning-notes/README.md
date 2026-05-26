@@ -1,15 +1,33 @@
 # Learning Notes
 
-These notes are the deeper study companion for the real-time streaming project.
+These are Jenny's notes for the real-time streaming project.
 
-The main `README.md` is written for a quick professional overview. These notes are written more like a project notebook: clear enough for a junior data engineer to revisit later, but still using the correct terminology.
+The main `README.md` is the clean, recruiter-friendly overview. This folder is the slower walkthrough: what I built, why each piece exists, what confused me at first, and what I want future-me to remember when I come back to this later.
 
-## What is in this folder
+The goal is not to sound fancy. The goal is to make the project make sense.
 
-- `end-to-end-walkthrough.md` explains the full pipeline from Postman to Snowflake.
-- `service-by-service-notes.md` explains what each service does and why it was included.
-- `s3-iam-study-notes.md` connects the S3 and IAM exercises back to the actual project.
-- `operations-and-error-handling.md` covers monitoring, error handling, reprocessing, and Firehose buffering.
-- `project-explanation-guide.md` gives a clean way to explain the project in a review or interview conversation.
+## What's in this folder
 
-These are intentionally not written like formal product documentation. They are study notes with professional terminology, built from the project work and course-provided review material.
+- `end-to-end-walkthrough.md` — the full pipeline from Postman to Snowflake.
+- `service-by-service-notes.md` — what each AWS/Snowflake service did in this project.
+- `s3-iam-study-notes.md` — S3 and IAM concepts that showed up while building the lab.
+- `operations-and-error-handling.md` — logs, errors, buffering, and reprocessing notes.
+- `project-explanation-guide.md` — a natural way to explain the project out loud.
+
+## Why these notes exist
+
+A lot of this project was not "write code and run it." It was more like connecting a bunch of cloud services and making sure every handoff worked:
+
+```text
+API Gateway has to call Lambda.
+Lambda has to write to Kinesis and S3.
+Firehose has to deliver to S3.
+Snowflake has to read from S3.
+Snowpipe has to notice when new files arrive.
+```
+
+That is easy to forget if all I keep is a polished README. These notes keep the messy-but-useful explanation close to the project.
+
+## Tone of these notes
+
+These are not meant to be formal product docs. They are working notes: plain language first, technical terms where they actually help, and enough context that someone learning cloud data engineering could follow the story without already knowing every AWS service by heart.
