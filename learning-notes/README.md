@@ -31,3 +31,5 @@ That is easy to forget if all I keep is a polished README. These notes keep the 
 ## Tone of these notes
 
 These are not meant to be formal product docs. They are working notes: plain language first, technical terms where they actually help, and enough context that someone learning cloud data engineering could follow the story without already knowing every AWS service by heart.
+
+They say "drinking from a firehose," but that's an understatement when you're building multiple projects with brand-new tools while your job keeps throwing new stories at you. So yes — these README.md files are absolutely necessary. I might forget what I ate for lunch by the end of the day, if you're picking up what I'm putting down.
